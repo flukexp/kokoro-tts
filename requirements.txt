@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+torch
+soundfile
+huggingface_hub
+kokoro>=0.7.14
+numpy
