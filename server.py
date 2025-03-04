@@ -15,6 +15,11 @@ from pydantic import BaseModel
 class TTSRequest(BaseModel):
     text: str
     voice: str = "af_bella"
+    
+class AudioSpeechRequest(BaseModel):
+    model: str = "kokoro-v1_0"
+    input: str
+    voice: str = "af_bella"
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -80,6 +85,38 @@ async def voices():
 @app.post("/tts")
 async def tts(request: TTSRequest) -> StreamingResponse:
     """Processes TTS requests as quickly as possible."""
+    
+    if model is None or pipeline is None:
+        raise HTTPException(status_code=500, detail="Model not loaded.")
+
+    if request.voice not in VOICE_DESCRIPTIONS:
+        raise HTTPException(status_code=400, detail=f"Invalid voice '{request.voice}'. Available voices: {list(VOICE_DESCRIPTIONS.keys())}")
+
+    logging.info(f"\nGenerating speech for '{request.text}' with voice '{request.voice}'")
+    start_time = datetime.now()
+
+    try:
+        audio_data = []
+        for i, (_, _, audio) in enumerate(pipeline(request.text, voice=request.voice, speed=1)):
+            audio_data.extend(audio.detach().cpu().numpy())
+
+        # Stream audio directly from memory
+        buffer = io.BytesIO()
+        sf.write(buffer, audio_data, 24000, format="WAV")
+        buffer.seek(0)
+
+        duration = (datetime.now() - start_time).total_seconds()
+        logging.info(f"Speech generation completed in {duration:.2f} seconds.")
+
+        return StreamingResponse(buffer, media_type="audio/wav")
+    except Exception as e:
+        logging.error(f"Error generating speech: {e}")
+        raise HTTPException(status_code=500, detail=f"TTS generation failed: {e}")
+
+@app.post("/v1/audio/speech")
+async def openaitts(request: AudioSpeechRequest) -> StreamingResponse:
+    """OpenAI-compatible endpoint for TTS"""
+    
     if model is None or pipeline is None:
         raise HTTPException(status_code=500, detail="Model not loaded.")
 
