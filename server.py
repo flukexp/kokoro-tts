@@ -92,7 +92,7 @@ async def tts(request: TTSRequest) -> StreamingResponse:
     if request.voice not in VOICE_DESCRIPTIONS:
         raise HTTPException(status_code=400, detail=f"Invalid voice '{request.voice}'. Available voices: {list(VOICE_DESCRIPTIONS.keys())}")
 
-    logging.info(f"\nGenerating speech for '{request.text}' with voice '{request.voice}'")
+    logging.info(f"Generating speech for '{request.text}' with voice '{request.voice}'")
     start_time = datetime.now()
 
     try:
@@ -123,12 +123,12 @@ async def openaitts(request: AudioSpeechRequest) -> StreamingResponse:
     if request.voice not in VOICE_DESCRIPTIONS:
         raise HTTPException(status_code=400, detail=f"Invalid voice '{request.voice}'. Available voices: {list(VOICE_DESCRIPTIONS.keys())}")
 
-    logging.info(f"\nGenerating speech for '{request.text}' with voice '{request.voice}'")
+    logging.info(f"Generating speech for '{request.input}' with voice '{request.voice}'")
     start_time = datetime.now()
 
     try:
         audio_data = []
-        for i, (_, _, audio) in enumerate(pipeline(request.text, voice=request.voice, speed=1)):
+        for i, (_, _, audio) in enumerate(pipeline(request.input, voice=request.voice, speed=1)):
             audio_data.extend(audio.detach().cpu().numpy())
 
         # Stream audio directly from memory
